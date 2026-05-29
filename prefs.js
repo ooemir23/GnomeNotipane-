@@ -708,8 +708,8 @@ export default class NotiPanelPreferences extends ExtensionPreferences {
             })
         });
         const posIds = ['hidden', 'left', 'right'];
-        let currentPos = settings.get_string('prayer-countdown-position') || 'hidden';
-        let posIdx = posIds.indexOf(currentPos);
+        let currentPrayerPos = settings.get_string('prayer-countdown-position') || 'hidden';
+        let posIdx = posIds.indexOf(currentPrayerPos);
         if (posIdx >= 0) countdownPosRow.selected = posIdx;
         countdownPosRow.connect('notify::selected', () => {
             settings.set_string('prayer-countdown-position', posIds[countdownPosRow.selected]);
