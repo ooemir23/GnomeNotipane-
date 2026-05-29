@@ -151,7 +151,7 @@ export default class NotiPanelExtension extends Extension {
                 style: 'padding-bottom: 8px; spacing: 6px;'
             });
 
-            let container = dateMenu._messageList._sectionList || dateMenu._messageList;
+            let container = dateMenu._messageList;
             container.insert_child_at_index(this._filterRow, 0);
 
             this._activeFilter = null;
