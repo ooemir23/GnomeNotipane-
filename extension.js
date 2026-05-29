@@ -22,10 +22,15 @@ export default class NotiPanelExtension extends Extension {
         this._prayerCityId = null;
         this._prayerCountryId = null;
         this._prayerMethodId = null;
+        this._prayerCountdownPositionId = null;
         this._prayerTimerId = null;
         this._cachedTimings = null;
         this._cachedTimingsDate = '';
         this._lastTriggeredPrayer = '';
+        this._prayerPanelLabel = new St.Label({
+            style_class: 'notipanel-prayer-panel-label',
+            y_align: Clutter.ActorAlign.CENTER,
+        });
 
         // Get the native GNOME date/clock menu
         let dateMenu = Main.panel.statusArea.dateMenu;
@@ -243,6 +248,7 @@ export default class NotiPanelExtension extends Extension {
         this._prayerCityId = this._settings.connect('changed::prayer-city', () => this._updatePrayerData());
         this._prayerCountryId = this._settings.connect('changed::prayer-country', () => this._updatePrayerData());
         this._prayerMethodId = this._settings.connect('changed::prayer-method', () => this._updatePrayerData());
+        this._prayerCountdownPositionId = this._settings.connect('changed::prayer-countdown-position', () => this._syncPanelLayout());
 
         // ── Inject DND & Settings buttons next to the native date header ──
         this._injectCalendarHeaderButtons(dateMenu);
@@ -354,6 +360,7 @@ export default class NotiPanelExtension extends Extension {
         safeRemove(this._bannerTextWrapper);
         safeRemove(dateMenu._clockDisplay);
         safeRemove(this._customClockBox);
+        safeRemove(this._prayerPanelLabel);
         if (this._clockWrapper.get_parent()) safeRemove(this._clockWrapper);
         // Remove bannerButton from panel box if it's there
         if (this._bannerButton && this._bannerButton.get_parent()) {
@@ -377,35 +384,39 @@ export default class NotiPanelExtension extends Extension {
         }
 
         // ── Rebuild clockWrapper contents ──
-        // Always: indicatorContainer + (customClockBox if not hidden)
-        if (placement === 'replace' && bannerActive) {
-            // Clock hidden while banner shows in its place
-            if (this._customClockBox) this._customClockBox.hide();
-            dateMenu._clockDisplay.hide();
-            this._clockWrapper.add_child(this._indicatorContainer);
-        } else if (bannerActive) {
-            // For left/right: show clock normally alongside banner
-            if (this._customClockBox) this._customClockBox.show();
-            dateMenu._clockDisplay.hide();
+        let showPrayer = this._settings.get_string('prayer-countdown-position') || 'hidden';
+        let enablePrayer = this._settings.get_boolean('enable-prayer-times');
+        
+        let widgets = [];
+        
+        // Push indicator
+        widgets.push(this._indicatorContainer);
+        
+        // Push clock if not hidden by replace banner
+        if (!(placement === 'replace' && bannerActive)) {
             if (placement === 'right') {
-                this._clockWrapper.add_child(this._customClockBox);
-                this._clockWrapper.add_child(this._indicatorContainer);
+                widgets.unshift(this._customClockBox);
             } else {
-                this._clockWrapper.add_child(this._indicatorContainer);
-                this._clockWrapper.add_child(this._customClockBox);
-            }
-        } else {
-            // No banner: show clock normally
-            if (this._customClockBox) this._customClockBox.show();
-            dateMenu._clockDisplay.hide();
-            if (placement === 'right') {
-                this._clockWrapper.add_child(this._customClockBox);
-                this._clockWrapper.add_child(this._indicatorContainer);
-            } else {
-                this._clockWrapper.add_child(this._indicatorContainer);
-                this._clockWrapper.add_child(this._customClockBox);
+                widgets.push(this._customClockBox);
             }
         }
+        
+        // Push prayer label if visible
+        if (enablePrayer && showPrayer !== 'hidden') {
+            this._prayerPanelLabel.show();
+            if (showPrayer === 'left') {
+                widgets.unshift(this._prayerPanelLabel);
+            } else {
+                widgets.push(this._prayerPanelLabel);
+            }
+        } else {
+            this._prayerPanelLabel.hide();
+        }
+        
+        // Add them to wrapper in order
+        widgets.forEach(w => {
+            if (w) this._clockWrapper.add_child(w);
+        });
         clockBox.add_child(this._clockWrapper);
 
         // ── Place banner button in PANEL BOX as a sibling of dateMenu ──
@@ -1163,9 +1174,9 @@ export default class NotiPanelExtension extends Extension {
 
     async _fetchPrayerTimes(city, country, method) {
         try {
-            let url = `http://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=${method}`;
+            let url = `https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=${method}`;
             let proc = Gio.Subprocess.new(
-                ['curl', '-s', '-m', '10', url],
+                ['curl', '-L', '-s', '-m', '10', url],
                 Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE
             );
             return new Promise((resolve, reject) => {
@@ -1412,7 +1423,26 @@ export default class NotiPanelExtension extends Extension {
 
         let nextName = names[this._nextPrayerKey];
         let hoursStr = h > 0 ? `${h}sa ` : '';
-        this._prayerCountdownLabel.set_text(`${nextName} vaktine: ${hoursStr}${m}dk`);
+        let countdownText = `${nextName} vaktine: ${hoursStr}${m}dk`;
+        this._prayerCountdownLabel.set_text(countdownText);
+
+        if (this._prayerPanelLabel) {
+            let shortName = names[this._nextPrayerKey];
+            if (isTurkish) {
+                const suffixes = {
+                    'Fajr': 'İmsak\'a',
+                    'Sunrise': 'Güneş\'e',
+                    'Dhuhr': 'Öğle\'ye',
+                    'Asr': 'İkindi\'ye',
+                    'Maghrib': 'Akşam\'a',
+                    'Isha': 'Yatsı\'ya'
+                };
+                shortName = suffixes[this._nextPrayerKey] || shortName;
+            } else {
+                shortName = `to ${shortName}`;
+            }
+            this._prayerPanelLabel.set_text(`${shortName}: ${hoursStr}${m}dk`);
+        }
     }
 
     _triggerPrayerAlert() {
@@ -1640,11 +1670,16 @@ export default class NotiPanelExtension extends Extension {
         disconnect(this._prayerCityId);
         disconnect(this._prayerCountryId);
         disconnect(this._prayerMethodId);
+        disconnect(this._prayerCountdownPositionId);
 
         this._stopPrayerCountdown();
         if (this._prayerBox) {
             this._prayerBox.destroy();
             this._prayerBox = null;
+        }
+        if (this._prayerPanelLabel) {
+            this._prayerPanelLabel.destroy();
+            this._prayerPanelLabel = null;
         }
 
         if (this._queueChangedId) {

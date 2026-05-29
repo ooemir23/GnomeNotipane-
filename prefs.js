@@ -32,6 +32,7 @@ const tr = {
     'Enable Adhan audio alert': 'Ezan / Vakit Bildirimini Etkinleştir',
     'Play a notification sound when a prayer time arrives': 'Vakit geldiğinde uyarı sesi/bildirim çal',
     'Adhan Sound File Path': 'Ezan / Uyarı Ses Dosyası Yolu',
+    'Panel Geri Sayım Konumu': 'Panel Geri Sayım Konumu',
     'Panel Position & Hover': 'Panel Konumu ve Hover',
     'Configure where the notification panel is placed and how it opens': 'Bildirim panelinin konumunu ve nasıl açılacağını yapılandırın',
     'Hide When No Notifications': 'Bildirim Yokken Gizle',
@@ -694,6 +695,26 @@ export default class NotiPanelPreferences extends ExtensionPreferences {
         });
         settings.bind('enable-adhan', enableAdhanRow, 'active', Gio.SettingsBindFlags.DEFAULT);
         prayerGroup.add(enableAdhanRow);
+
+        // Prayer Countdown Position Selection Row
+        const countdownPosRow = new Adw.ComboRow({
+            title: _('Panel Countdown Position') || 'Panel Geri Sayım Konumu',
+            model: new Gtk.StringList({
+                strings: [
+                    'Gizli (Hidden)',
+                    'Sol (Left of Clock)',
+                    'Sağ (Right of Clock)'
+                ]
+            })
+        });
+        const posIds = ['hidden', 'left', 'right'];
+        let currentPos = settings.get_string('prayer-countdown-position') || 'hidden';
+        let posIdx = posIds.indexOf(currentPos);
+        if (posIdx >= 0) countdownPosRow.selected = posIdx;
+        countdownPosRow.connect('notify::selected', () => {
+            settings.set_string('prayer-countdown-position', posIds[countdownPosRow.selected]);
+        });
+        prayerGroup.add(countdownPosRow);
 
         // Adhan Sound File Input
         const adhanSoundRow = new Adw.EntryRow({
