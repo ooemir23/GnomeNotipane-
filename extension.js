@@ -18,6 +18,14 @@ export default class NotiPanelExtension extends Extension {
         this._sourcesMap = new Map();
         // New flag to track banner visibility independent of timer id
         this._bannerActive = false;
+        this._prayerTimesEnabledId = null;
+        this._prayerCityId = null;
+        this._prayerCountryId = null;
+        this._prayerMethodId = null;
+        this._prayerTimerId = null;
+        this._cachedTimings = null;
+        this._cachedTimingsDate = '';
+        this._lastTriggeredPrayer = '';
 
         // Get the native GNOME date/clock menu
         let dateMenu = Main.panel.statusArea.dateMenu;
@@ -189,6 +197,7 @@ export default class NotiPanelExtension extends Extension {
                 this._decorateMessageList();
                 this._rebuildFilterRow();
                 this._applyFilters();
+                this._updatePrayerData();
             }
         });
 
@@ -230,6 +239,10 @@ export default class NotiPanelExtension extends Extension {
         this._iconTypeId  = this._settings.connect('changed::indicator-icon-type', () => this._updateIndicatorIcon());
         this._iconColorId = this._settings.connect('changed::indicator-color',     () => this._updateIndicatorIcon());
         this._hideEmptyId = this._settings.connect('changed::hide-when-empty',     () => this._syncVisibility(dateMenu));
+        this._prayerTimesEnabledId = this._settings.connect('changed::enable-prayer-times', () => this._rebuildPrayerBox());
+        this._prayerCityId = this._settings.connect('changed::prayer-city', () => this._updatePrayerData());
+        this._prayerCountryId = this._settings.connect('changed::prayer-country', () => this._updatePrayerData());
+        this._prayerMethodId = this._settings.connect('changed::prayer-method', () => this._updatePrayerData());
 
         // ── Inject DND & Settings buttons next to the native date header ──
         this._injectCalendarHeaderButtons(dateMenu);
@@ -238,6 +251,7 @@ export default class NotiPanelExtension extends Extension {
         this._updateIndicatorIcon();
         this._updateIndicatorState();
         this._decorateMessageList();
+        this._rebuildPrayerBox();
     }
 
     _updateClockDisplay() {
@@ -1147,6 +1161,292 @@ export default class NotiPanelExtension extends Extension {
         }
     }
 
+    async _fetchPrayerTimes(city, country, method) {
+        try {
+            let url = `http://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=${method}`;
+            let proc = Gio.Subprocess.new(
+                ['curl', '-s', '-m', '10', url],
+                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE
+            );
+            return new Promise((resolve, reject) => {
+                proc.communicate_utf8_async(null, null, (obj, res) => {
+                    try {
+                        let [ok, stdout, stderr] = obj.communicate_utf8_finish(res);
+                        if (ok && stdout) {
+                            let data = JSON.parse(stdout);
+                            if (data && data.data && data.data.timings) {
+                                resolve(data.data.timings);
+                            } else {
+                                reject(new Error("Invalid API response"));
+                            }
+                        } else {
+                            reject(new Error("Curl command failed"));
+                        }
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+            });
+        } catch (e) {
+            return Promise.reject(e);
+        }
+    }
+
+    _rebuildPrayerBox() {
+        if (this._prayerBox) {
+            this._prayerBox.destroy();
+            this._prayerBox = null;
+        }
+
+        if (!this._settings.get_boolean('enable-prayer-times')) return;
+
+        let dateMenu = Main.panel.statusArea.dateMenu;
+        if (!dateMenu) return;
+
+        let bin = dateMenu.menu.box.get_first_child();
+        let calendarArea = bin ? bin.get_first_child() : null;
+        if (!calendarArea) return;
+        let areaChildren = calendarArea.get_children() || [];
+        let vbox = areaChildren.find(c => c !== dateMenu._messageList);
+        if (!vbox) return;
+
+        this._prayerBox = new St.BoxLayout({
+            orientation: Clutter.Orientation.VERTICAL,
+            style_class: 'notipanel-prayer-box'
+        });
+
+        let header = new St.BoxLayout({
+            orientation: Clutter.Orientation.HORIZONTAL,
+            style_class: 'notipanel-prayer-header'
+        });
+        let title = new St.Label({
+            text: isTurkish ? 'Namaz Vakitleri' : 'Prayer Times',
+            style_class: 'notipanel-prayer-title',
+            x_expand: true,
+            y_align: Clutter.ActorAlign.CENTER
+        });
+        this._prayerCountdownLabel = new St.Label({
+            text: '',
+            style_class: 'notipanel-prayer-countdown',
+            y_align: Clutter.ActorAlign.CENTER
+        });
+        header.add_child(title);
+        header.add_child(this._prayerCountdownLabel);
+        this._prayerBox.add_child(header);
+
+        this._prayerGrid = new St.BoxLayout({
+            orientation: Clutter.Orientation.HORIZONTAL,
+            style_class: 'notipanel-prayer-grid'
+        });
+        this._prayerBox.add_child(this._prayerGrid);
+
+        vbox.insert_child_at_index(this._prayerBox, 1);
+
+        this._updatePrayerData();
+    }
+
+    async _updatePrayerData() {
+        if (!this._prayerBox) return;
+
+        let city = this._settings.get_string('prayer-city') || 'Istanbul';
+        let country = this._settings.get_string('prayer-country') || 'Turkey';
+        let method = this._settings.get_string('prayer-method') || '13';
+
+        let todayStr = new Date().toDateString();
+
+        if (this._cachedTimings && this._cachedTimingsDate === todayStr) {
+            this._fillPrayerGrid(this._cachedTimings);
+            return;
+        }
+
+        try {
+            let timings = await this._fetchPrayerTimes(city, country, method);
+            this._cachedTimings = timings;
+            this._cachedTimingsDate = todayStr;
+            this._fillPrayerGrid(timings);
+        } catch (e) {
+            console.error("NotiPanel Error fetching prayer times: " + e);
+            this._prayerCountdownLabel.set_text(isTurkish ? 'Hata!' : 'Error!');
+        }
+    }
+
+    _fillPrayerGrid(timings) {
+        if (!this._prayerGrid) return;
+        this._prayerGrid.destroy_all_children();
+
+        const keys = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+        const names = isTurkish ? {
+            'Fajr': 'İmsak',
+            'Sunrise': 'Güneş',
+            'Dhuhr': 'Öğle',
+            'Asr': 'İkindi',
+            'Maghrib': 'Akşam',
+            'Isha': 'Yatsı'
+        } : {
+            'Fajr': 'Fajr',
+            'Sunrise': 'Sunrise',
+            'Dhuhr': 'Dhuhr',
+            'Asr': 'Asr',
+            'Maghrib': 'Maghrib',
+            'Isha': 'Isha'
+        };
+
+        let now = new Date();
+        let currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        let nextPrayerKey = null;
+        let minDiff = 1440;
+        let prayerMinutesMap = {};
+
+        keys.forEach(k => {
+            let val = timings[k];
+            if (val) {
+                let parts = val.split(':');
+                let h = parseInt(parts[0]);
+                let m = parseInt(parts[1]);
+                let pMinutes = h * 60 + m;
+                prayerMinutesMap[k] = pMinutes;
+
+                let diff = pMinutes - currentMinutes;
+                if (diff > 0 && diff < minDiff) {
+                    minDiff = diff;
+                    nextPrayerKey = k;
+                }
+            }
+        });
+
+        if (!nextPrayerKey) {
+            nextPrayerKey = 'Fajr';
+        }
+
+        this._nextPrayerKey = nextPrayerKey;
+        this._prayerMinutesMap = prayerMinutesMap;
+
+        keys.forEach(k => {
+            let val = timings[k];
+            if (!val) return;
+
+            let itemBox = new St.BoxLayout({
+                orientation: Clutter.Orientation.VERTICAL,
+                style_class: 'notipanel-prayer-item' + (k === nextPrayerKey ? ' active' : '')
+            });
+            itemBox.set_x_expand(true);
+
+            let label = new St.Label({
+                text: names[k],
+                style_class: 'notipanel-prayer-label'
+            });
+            let value = new St.Label({
+                text: val,
+                style_class: 'notipanel-prayer-value'
+            });
+
+            itemBox.add_child(label);
+            itemBox.add_child(value);
+            this._prayerGrid.add_child(itemBox);
+        });
+
+        this._startPrayerCountdown();
+    }
+
+    _startPrayerCountdown() {
+        this._stopPrayerCountdown();
+
+        this._prayerTimerId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 10, () => {
+            this._updatePrayerCountdown();
+            return GLib.SOURCE_CONTINUE;
+        });
+
+        this._updatePrayerCountdown();
+    }
+
+    _stopPrayerCountdown() {
+        if (this._prayerTimerId) {
+            GLib.source_remove(this._prayerTimerId);
+            this._prayerTimerId = null;
+        }
+    }
+
+    _updatePrayerCountdown() {
+        if (!this._prayerCountdownLabel || !this._nextPrayerKey || !this._prayerMinutesMap) return;
+
+        let now = new Date();
+        let currentMinutes = now.getHours() * 60 + now.getMinutes();
+        let currentSeconds = now.getSeconds();
+
+        let targetMinutes = this._prayerMinutesMap[this._nextPrayerKey];
+        if (targetMinutes === undefined) return;
+
+        let diffSeconds = (targetMinutes * 60) - (currentMinutes * 60 + currentSeconds);
+
+        if (diffSeconds < 0) {
+            diffSeconds += 24 * 60 * 60;
+        }
+
+        let todayKey = new Date().toDateString() + '_' + this._nextPrayerKey;
+        if (diffSeconds <= 0 && diffSeconds > -10 && this._lastTriggeredPrayer !== todayKey) {
+            this._lastTriggeredPrayer = todayKey;
+            this._triggerPrayerAlert();
+            this._updatePrayerData();
+            return;
+        }
+
+        let h = Math.floor(diffSeconds / 3600);
+        let m = Math.floor((diffSeconds % 3600) / 60);
+
+        const names = isTurkish ? {
+            'Fajr': 'İmsak',
+            'Sunrise': 'Güneş',
+            'Dhuhr': 'Öğle',
+            'Asr': 'İkindi',
+            'Maghrib': 'Akşam',
+            'Isha': 'Yatsı'
+        } : {
+            'Fajr': 'Fajr',
+            'Sunrise': 'Sunrise',
+            'Dhuhr': 'Dhuhr',
+            'Asr': 'Asr',
+            'Maghrib': 'Maghrib',
+            'Isha': 'Isha'
+        };
+
+        let nextName = names[this._nextPrayerKey];
+        let hoursStr = h > 0 ? `${h}sa ` : '';
+        this._prayerCountdownLabel.set_text(`${nextName} vaktine: ${hoursStr}${m}dk`);
+    }
+
+    _triggerPrayerAlert() {
+        if (!this._settings.get_boolean('enable-adhan')) return;
+
+        let file = this._settings.get_string('adhan-sound-file');
+        if (file && GLib.file_test(file, GLib.FileTest.EXISTS)) {
+            try { Gio.Subprocess.new(['paplay', file], Gio.SubprocessFlags.NONE); } catch (e) {}
+        }
+
+        const names = isTurkish ? {
+            'Fajr': 'İmsak',
+            'Sunrise': 'Güneş',
+            'Dhuhr': 'Öğle',
+            'Asr': 'İkindi',
+            'Maghrib': 'Akşam',
+            'Isha': 'Yatsı'
+        } : {
+            'Fajr': 'Fajr',
+            'Sunrise': 'Sunrise',
+            'Dhuhr': 'Dhuhr',
+            'Asr': 'Asr',
+            'Maghrib': 'Maghrib',
+            'Isha': 'Isha'
+        };
+        let pName = names[this._nextPrayerKey];
+        let title = isTurkish ? `Namaz Vakti: ${pName}` : `Prayer Time: ${pName}`;
+        let body = isTurkish ? `${pName} vakti girdi.` : `${pName} time has started.`;
+
+        try {
+            Gio.Subprocess.new(['notify-send', '-i', 'alarm-symbolic', title, body], Gio.SubprocessFlags.NONE);
+        } catch (e) {}
+    }
+
     disable() {
         this._cancelCloseTimer();
         this._stopMarquee();
@@ -1336,6 +1636,16 @@ export default class NotiPanelExtension extends Extension {
         disconnect(this._iconColorId);
         disconnect(this._hideEmptyId);
         disconnect(this._bannerPosId);
+        disconnect(this._prayerTimesEnabledId);
+        disconnect(this._prayerCityId);
+        disconnect(this._prayerCountryId);
+        disconnect(this._prayerMethodId);
+
+        this._stopPrayerCountdown();
+        if (this._prayerBox) {
+            this._prayerBox.destroy();
+            this._prayerBox = null;
+        }
 
         if (this._queueChangedId) {
             Main.messageTray.disconnect(this._queueChangedId);

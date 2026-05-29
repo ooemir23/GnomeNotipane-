@@ -21,6 +21,17 @@ const tr = {
     'Show Less': 'Daha Az Göster',
     'DND': 'Sessiz',
     'DND On': 'Sessiz: Açık',
+    'Prayer Times': 'Namaz Vakitleri',
+    'Namaz Vakitleri Ayarları': 'Namaz Vakitleri Ayarları',
+    'Namaz vakitlerini takvim menüsünde görüntüleme seçenekleri.': 'Namaz vakitlerini takvim menüsünde görüntüleme seçenekleri.',
+    'Enable Prayer Times': 'Namaz Vakitlerini Etkinleştir',
+    'Show daily prayer times in the calendar dropdown': 'Takvim menüsünün üstünde günlük namaz vakitlerini göster',
+    'City': 'Şehir',
+    'Country': 'Ülke',
+    'Calculation Method': 'Hesaplama Yöntemi',
+    'Enable Adhan audio alert': 'Ezan / Vakit Bildirimini Etkinleştir',
+    'Play a notification sound when a prayer time arrives': 'Vakit geldiğinde uyarı sesi/bildirim çal',
+    'Adhan Sound File Path': 'Ezan / Uyarı Ses Dosyası Yolu',
     'Panel Position & Hover': 'Panel Konumu ve Hover',
     'Configure where the notification panel is placed and how it opens': 'Bildirim panelinin konumunu ve nasıl açılacağını yapılandırın',
     'Hide When No Notifications': 'Bildirim Yokken Gizle',
@@ -603,5 +614,98 @@ export default class NotiPanelPreferences extends ExtensionPreferences {
         });
 
         loadHistoryItems();
+
+        // Page 6: Namaz Vakitleri (Prayer Times)
+        const pagePrayer = new Adw.PreferencesPage({
+            title: _('Prayer Times') || 'Namaz Vakitleri',
+            icon_name: 'alarm-symbolic',
+        });
+        window.add(pagePrayer);
+
+        const prayerGroup = new Adw.PreferencesGroup({
+            title: _('Namaz Vakitleri Ayarları') || 'Namaz Vakitleri Ayarları',
+            description: _('Namaz vakitlerini takvim menüsünde görüntüleme seçenekleri.') || 'Namaz vakitlerini takvim menüsünde görüntüleme seçenekleri.',
+        });
+        pagePrayer.add(prayerGroup);
+
+        // Enable Switch
+        const enablePrayerRow = new Adw.SwitchRow({
+            title: _('Enable Prayer Times') || 'Namaz Vakitlerini Etkinleştir',
+            subtitle: _('Show daily prayer times in the calendar dropdown') || 'Takvim menüsünün üstünde günlük namaz vakitlerini göster',
+        });
+        settings.bind('enable-prayer-times', enablePrayerRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        prayerGroup.add(enablePrayerRow);
+
+        // City Input
+        const prayerCityRow = new Adw.EntryRow({
+            title: _('City') || 'Şehir',
+            text: settings.get_string('prayer-city')
+        });
+        prayerCityRow.connect('notify::text', () => {
+            settings.set_string('prayer-city', prayerCityRow.text);
+        });
+        settings.connect('changed::prayer-city', () => {
+            prayerCityRow.text = settings.get_string('prayer-city');
+        });
+        prayerGroup.add(prayerCityRow);
+
+        // Country Input
+        const prayerCountryRow = new Adw.EntryRow({
+            title: _('Country') || 'Ülke',
+            text: settings.get_string('prayer-country')
+        });
+        prayerCountryRow.connect('notify::text', () => {
+            settings.set_string('prayer-country', prayerCountryRow.text);
+        });
+        settings.connect('changed::prayer-country', () => {
+            prayerCountryRow.text = settings.get_string('prayer-country');
+        });
+        prayerGroup.add(prayerCountryRow);
+
+        // Calculation Method Selection Row
+        const methodRow = new Adw.ComboRow({
+            title: _('Calculation Method') || 'Hesaplama Yöntemi',
+            model: new Gtk.StringList({
+                strings: [
+                    'Diyanet (Turkey)',
+                    'ISNA (North America)',
+                    'MWL (Muslim World League)',
+                    'Egypt',
+                    'Umm Al-Qura (Makkah)',
+                    'Karachi',
+                    'Tehran',
+                    'Gulf Method'
+                ]
+            })
+        });
+        const methodIds = ['13', '2', '3', '5', '4', '1', '7', '8'];
+        let currentMethod = settings.get_string('prayer-method') || '13';
+        let selIdx = methodIds.indexOf(currentMethod);
+        if (selIdx >= 0) methodRow.selected = selIdx;
+        methodRow.connect('notify::selected', () => {
+            settings.set_string('prayer-method', methodIds[methodRow.selected]);
+        });
+        prayerGroup.add(methodRow);
+
+        // Enable Adhan Switch
+        const enableAdhanRow = new Adw.SwitchRow({
+            title: _('Enable Adhan audio alert') || 'Ezan / Vakit Bildirimini Etkinleştir',
+            subtitle: _('Play a notification sound when a prayer time arrives') || 'Vakit geldiğinde uyarı sesi/bildirim çal',
+        });
+        settings.bind('enable-adhan', enableAdhanRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        prayerGroup.add(enableAdhanRow);
+
+        // Adhan Sound File Input
+        const adhanSoundRow = new Adw.EntryRow({
+            title: _('Adhan Sound File Path') || 'Ezan / Uyarı Ses Dosyası Yolu',
+            text: settings.get_string('adhan-sound-file')
+        });
+        adhanSoundRow.connect('notify::text', () => {
+            settings.set_string('adhan-sound-file', adhanSoundRow.text);
+        });
+        settings.connect('changed::adhan-sound-file', () => {
+            adhanSoundRow.text = settings.get_string('adhan-sound-file');
+        });
+        prayerGroup.add(adhanSoundRow);
     }
 }
