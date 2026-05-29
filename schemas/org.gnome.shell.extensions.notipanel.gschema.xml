@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.notipanel" path="/org/gnome/shell/extensions/notipanel/">
+    <key name="display-timeout" type="i">
+      <default>5</default>
+      <summary>Banner display duration in seconds</summary>
+      <description>How many seconds an incoming notification text should remain displayed on the panel before collapsing.</description>
+    </key>
+    <key name="hide-when-empty" type="b">
+      <default>true</default>
+      <summary>Hide when no notifications exist</summary>
+      <description>If true, the indicator button is hidden from the top panel when there are no unread notifications.</description>
+    </key>
+    <key name="menu-width" type="i">
+      <default>340</default>
+      <summary>Popup menu width</summary>
+      <description>Width of the notification popup menu in pixels.</description>
+    </key>
+    <key name="menu-max-height" type="i">
+      <default>450</default>
+      <summary>Popup menu max height</summary>
+      <description>Maximum height of the scrollable notification list.</description>
+    </key>
+    <key name="panel-position" type="s">
+      <default>'right'</default>
+      <summary>Panel position</summary>
+      <description>Position of the indicator in the top panel (left, center, right).</description>
+    </key>
+    <key name="panel-index" type="i">
+      <default>1</default>
+      <summary>Panel index</summary>
+      <description>Sorting index in the top panel section.</description>
+    </key>
+    <key name="banner-max-width" type="i">
+      <default>250</default>
+      <summary>Banner max width</summary>
+      <description>Maximum width of the temporary panel text in pixels.</description>
+    </key>
+    <key name="banner-height" type="i">
+      <default>36</default>
+      <summary>Banner height</summary>
+      <description>Height of the temporary panel text in pixels.</description>
+    </key>
+    <key name="banner-scroll-enabled" type="b">
+      <default>true</default>
+      <summary>Enable banner text marquee scroll</summary>
+      <description>Scroll the notification text inside the top bar if it exceeds the limit.</description>
+    </key>
+    <key name="banner-scroll-speed" type="i">
+      <default>200</default>
+      <summary>Banner scrolling speed</summary>
+      <description>Scrolling delay in milliseconds (smaller value is faster).</description>
+    </key>
+    <key name="show-banner-icon" type="b">
+      <default>true</default>
+      <summary>Show icon next to banner</summary>
+      <description>Show application icon next to the banner text in the panel.</description>
+    </key>
+    <key name="hover-to-show" type="b">
+      <default>true</default>
+      <summary>Hover to show notification menu</summary>
+      <description>Open popup menu when hovering mouse over the panel indicator.</description>
+    </key>
+    <key name="hover-close-delay" type="i">
+      <default>800</default>
+      <summary>Hover close delay in milliseconds</summary>
+      <description>Delay in milliseconds before closing the menu after hover out.</description>
+    </key>
+    <key name="popover-layout" type="s">
+      <default>'calendar-notifications'</default>
+      <summary>Popover menu layout style</summary>
+      <description>Layout style of the popover menu (calendar-notifications, notifications-calendar, notifications-only, calendar-only).</description>
+    </key>
+    <key name="theme-style" type="s">
+      <default>'glass'</default>
+      <summary>Visual theme style</summary>
+      <description>Dropdown selection for menu style (glass, dark, solid).</description>
+    </key>
+    <key name="indicator-icon-type" type="s">
+      <default>'bell'</default>
+      <summary>Indicator icon style</summary>
+      <description>Type of top bar icon (bell, bell-badge, dot).</description>
+    </key>
+    <key name="indicator-color" type="s">
+      <default>'#89b4fa'</default>
+      <summary>Indicator icon color</summary>
+      <description>Hex color of the indicator icon.</description>
+    </key>
+    <key name="enable-sound" type="b">
+      <default>true</default>
+      <summary>Enable notification sound</summary>
+      <description>Play a sound when a notification arrives.</description>
+    </key>
+    <key name="sound-file" type="s">
+      <default>'/usr/share/sounds/freedesktop/stereo/message.oga'</default>
+      <summary>Notification sound file path</summary>
+      <description>Path to custom sound file to play on notification.</description>
+    </key>
+    <key name="panel-show-clock" type="b">
+      <default>false</default>
+      <summary>Show Clock in Panel</summary>
+      <description>Show current time on the top bar panel button.</description>
+    </key>
+    <key name="panel-show-date" type="b">
+      <default>false</default>
+      <summary>Show Date in Panel</summary>
+      <description>Show current date next to the clock in the panel.</description>
+    </key>
+    <key name="banner-position-relative-to-clock" type="s">
+      <default>'left'</default>
+      <summary>Banner Position relative to Clock</summary>
+      <description>Select where the incoming notification banner appears relative to the clock (replace, left, right, dropdown-only).</description>
+    </key>
+    <key name="banner-blacklist" type="s">
+      <default>''</default>
+      <summary>Excluded apps for banner</summary>
+      <description>Comma-separated list of app titles to exclude from top bar banners.</description>
+    </key>
+    <key name="clock-format-mode" type="s">
+      <default>'standard'</default>
+      <summary>Clock display mode</summary>
+      <description>Select how to format time and date on the panel (standard, standard-with-seconds, 12h, 12h-with-seconds, two-lines, two-lines-12h, two-lines-date-day-time, custom).</description>
+    </key>
+    <key name="clock-custom-format" type="s">
+      <default>'%d %b %H:%M'</default>
+      <summary>Custom clock format string</summary>
+      <description>GLib DateTime formatting string for the clock button when mode is set to custom.</description>
+    </key>
+  </schema>
+</schemalist>

@@ -1,0 +1,14 @@
+{
+  "name": "NotiPanel",
+  "description": "Custom notification indicator next to the clock. Displays notifications on incoming, collapses to a count badge, and shows active notifications on hover.",
+  "uuid": "notipanel@ooemir",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50"
+  ],
+  "settings-schema": "org.gnome.shell.extensions.notipanel"
+}

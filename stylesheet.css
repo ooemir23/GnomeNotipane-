@@ -1,0 +1,233 @@
+/* NotiPanel native styling overrides */
+
+.message.approval {
+    background-color: rgba(249, 226, 175, 0.18) !important;
+    border: 1px solid rgba(249, 226, 175, 0.25) !important;
+    border-left: 5px solid #f9e2af !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.message.approval:hover {
+    background-color: rgba(249, 226, 175, 0.26) !important;
+}
+
+/* Hide contents of collapsed/stacked messages to prevent text/icon overlap */
+.message:second-in-stack StLabel,
+.message:second-in-stack StIcon,
+.message:second-in-stack StButton,
+.message:second-in-stack .message-title,
+.message:second-in-stack .message-content,
+.message:second-in-stack .message-icon-bin,
+.message:second-in-stack .message-secondary-bin,
+.message:second-in-stack .message-close-button,
+.message:lower-in-stack StLabel,
+.message:lower-in-stack StIcon,
+.message:lower-in-stack StButton,
+.message:lower-in-stack .message-title,
+.message:lower-in-stack .message-content,
+.message:lower-in-stack .message-icon-bin,
+.message:lower-in-stack .message-secondary-bin,
+.message:lower-in-stack .message-close-button {
+    opacity: 0 !important;
+}
+
+/* Header row for buttons */
+.notipanel-top-header-row {
+    spacing: 10px;
+    padding-right: 12px;
+}
+
+/* DND and settings buttons next to calendar header */
+.notipanel-menu-dnd-btn,
+.notipanel-menu-settings-btn {
+    border-radius: 8px;
+    padding: 6px;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #e0e0e0;
+    transition-duration: 150ms;
+}
+
+.notipanel-menu-dnd-btn:hover,
+.notipanel-menu-settings-btn:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+.notipanel-menu-dnd-btn.active {
+    background-color: rgba(239, 68, 68, 0.18);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.28);
+}
+
+.notipanel-top-buttons-box {
+    spacing: 6px;
+}
+
+/* Custom notification icon and badge padding/margin removal */
+.notipanel-custom-icon {
+    margin: 0px !important;
+    padding: 0px !important;
+}
+
+.notipanel-badge {
+    background-color: transparent !important;
+    color: white !important;
+    font-weight: 900;
+    font-size: 13px;
+    padding: 0px !important;
+    margin-left: 2px;
+    text-align: center;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* Temporary panel banner clickable button style */
+.notipanel-banner-button {
+    border: none;
+    background-color: transparent;
+    padding: 0px;
+    margin: 0px;
+}
+
+.notipanel-banner-button:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+}
+
+.notipanel-banner-button.approval {
+    background-color: rgba(249, 226, 175, 0.15) !important;
+    border-radius: 6px;
+    border: 1px solid rgba(249, 226, 175, 0.25) !important;
+    padding: 2px 6px !important;
+}
+
+.notipanel-banner-button.approval:hover {
+    background-color: rgba(249, 226, 175, 0.25) !important;
+}
+
+/* Custom Message List / Notification Menu Styling */
+.notipanel-message-list {
+    background-color: rgba(30, 30, 46, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    margin: 10px;
+}
+
+/* App Filter Row */
+.notipanel-filter-row {
+    padding: 8px;
+    spacing: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    margin-bottom: 12px;
+}
+
+.notipanel-filter-btn {
+    border-radius: 10px;
+    padding: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition-duration: 200ms;
+}
+
+.notipanel-filter-btn:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.notipanel-filter-btn.active {
+    background-color: rgba(137, 180, 250, 0.2);
+    border-color: rgba(137, 180, 250, 0.4);
+    color: #89b4fa;
+}
+
+/* Collapsible Notification Group Box */
+.notipanel-group-box {
+    margin-bottom: 14px;
+    spacing: 6px;
+}
+
+.notipanel-group-header {
+    padding: 6px 10px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    spacing: 8px;
+    transition-duration: 150ms;
+}
+
+.notipanel-group-header:hover {
+    background-color: rgba(255, 255, 255, 0.07);
+}
+
+.notipanel-group-title {
+    font-weight: bold;
+    font-size: 13px;
+    color: #cdd6f4;
+}
+
+.notipanel-cards-container {
+    spacing: 8px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+/* Card Styling */
+.notipanel-card {
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px;
+    spacing: 6px;
+    transition-duration: 150ms;
+}
+
+.notipanel-card:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.notipanel-card-header {
+    spacing: 8px;
+}
+
+.notipanel-card-title {
+    font-weight: bold;
+    font-size: 13px;
+    color: #f5e0dc;
+}
+
+.notipanel-card-close-btn {
+    border-radius: 6px;
+    padding: 4px;
+    background-color: transparent;
+    color: #a6adc8;
+}
+
+.notipanel-card-close-btn:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.notipanel-card-body {
+    font-size: 12px;
+    color: #bac2de;
+}
+
+/* Stacked cards simulated deck effect */
+.notipanel-card.stacked-deck {
+    box-shadow: 
+        0 4px 0 -1px rgba(255, 255, 255, 0.04), 
+        0 4px 0 0px rgba(255, 255, 255, 0.06), 
+        0 8px 0 -2px rgba(255, 255, 255, 0.02), 
+        0 8px 0 0px rgba(255, 255, 255, 0.04);
+    margin-bottom: 8px;
+}
+
+/* Empty Label styling */
+.notipanel-empty-label {
+    font-size: 13px;
+    color: #7f849c;
+    padding: 20px;
+    text-align: center;
+}
+
