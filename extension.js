@@ -31,6 +31,11 @@ export default class NotiPanelExtension extends Extension {
             style_class: 'notipanel-prayer-panel-label',
             y_align: Clutter.ActorAlign.CENTER,
         });
+        if (this._prayerPanelLabel.clutter_text) {
+            this._prayerPanelLabel.clutter_text.use_markup = true;
+            this._prayerPanelLabel.clutter_text.single_line_mode = false;
+            this._prayerPanelLabel.clutter_text.line_wrap = false;
+        }
 
         // Get the native GNOME date/clock menu
         let dateMenu = Main.panel.statusArea.dateMenu;
@@ -1347,10 +1352,16 @@ export default class NotiPanelExtension extends Extension {
                 text: names[k],
                 style_class: 'notipanel-prayer-label'
             });
+            if (label.clutter_text) {
+                label.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+            }
             let value = new St.Label({
                 text: val,
                 style_class: 'notipanel-prayer-value'
             });
+            if (value.clutter_text) {
+                value.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+            }
 
             itemBox.add_child(label);
             itemBox.add_child(value);
@@ -1441,7 +1452,10 @@ export default class NotiPanelExtension extends Extension {
             } else {
                 shortName = `to ${shortName}`;
             }
-            this._prayerPanelLabel.set_text(`${shortName}: ${hoursStr}${m}dk`);
+            let timeStr = h > 0 ? `${h}sa${m}dk` : `${m}dk`;
+            this._prayerPanelLabel.clutter_text.set_markup(
+                `<span size="8500" color="#f9e2af">${shortName}</span>\n<span size="8000" weight="bold" color="#a6e3a1">${timeStr}</span>`
+            );
         }
     }
 

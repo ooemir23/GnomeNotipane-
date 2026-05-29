@@ -33,6 +33,12 @@ const tr = {
     'Play a notification sound when a prayer time arrives': 'Vakit geldiğinde uyarı sesi/bildirim çal',
     'Adhan Sound File Path': 'Ezan / Uyarı Ses Dosyası Yolu',
     'Panel Geri Sayım Konumu': 'Panel Geri Sayım Konumu',
+    'Auto Detect Location': 'Konumu Otomatik Bul',
+    'Detect city and country automatically using IP address': 'IP adresinizi kullanarak şehir ve ülkeyi otomatik tespit edin',
+    'Detect': 'Tespit Et',
+    'Detecting...': 'Aranıyor...',
+    'Success': 'Başarılı',
+    'Failed': 'Başarısız',
     'Panel Position & Hover': 'Panel Konumu ve Hover',
     'Configure where the notification panel is placed and how it opens': 'Bildirim panelinin konumunu ve nasıl açılacağını yapılandırın',
     'Hide When No Notifications': 'Bildirim Yokken Gizle',
@@ -636,6 +642,51 @@ export default class NotiPanelPreferences extends ExtensionPreferences {
         });
         settings.bind('enable-prayer-times', enablePrayerRow, 'active', Gio.SettingsBindFlags.DEFAULT);
         prayerGroup.add(enablePrayerRow);
+
+        // Auto Detect Location Row
+        const autoLocRow = new Adw.ActionRow({
+            title: _('Auto Detect Location') || 'Konumu Otomatik Bul',
+            subtitle: _('Detect city and country automatically using IP address') || 'IP adresinizi kullanarak şehir ve ülkeyi otomatik tespit edin',
+        });
+        const autoLocBtn = new Gtk.Button({
+            label: _('Detect') || 'Tespit Et',
+            valign: Gtk.Align.CENTER,
+        });
+        autoLocRow.add_suffix(autoLocBtn);
+        prayerGroup.add(autoLocRow);
+
+        autoLocBtn.connect('clicked', () => {
+            autoLocBtn.sensitive = false;
+            autoLocBtn.label = _('Detecting...') || 'Aranıyor...';
+            let proc = Gio.Subprocess.new(
+                ['curl', '-s', 'https://ipapi.co/json/'],
+                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE
+            );
+            proc.communicate_utf8_async(null, null, (obj, res) => {
+                try {
+                    let [ok, stdout, stderr] = obj.communicate_utf8_finish(res);
+                    if (ok && stdout) {
+                        let data = JSON.parse(stdout);
+                        if (data && data.city && data.country_name) {
+                            settings.set_string('prayer-city', data.city);
+                            settings.set_string('prayer-country', data.country_name);
+                            autoLocBtn.label = _('Success') || 'Başarılı';
+                        } else {
+                            autoLocBtn.label = _('Failed') || 'Başarısız';
+                        }
+                    } else {
+                        autoLocBtn.label = _('Failed') || 'Başarısız';
+                    }
+                } catch (e) {
+                    autoLocBtn.label = _('Failed') || 'Başarısız';
+                }
+                GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
+                    autoLocBtn.sensitive = true;
+                    autoLocBtn.label = _('Detect') || 'Tespit Et';
+                    return GLib.SOURCE_REMOVE;
+                });
+            });
+        });
 
         // City Input
         const prayerCityRow = new Adw.EntryRow({
