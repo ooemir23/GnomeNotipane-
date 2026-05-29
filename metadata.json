@@ -1,7 +1,9 @@
 {
   "name": "NotiPanel",
-  "description": "Custom notification indicator next to the clock. Displays notifications on incoming, collapses to a count badge, and shows active notifications on hover.",
+  "description": "Custom notification indicator next to the clock. Integrates notifications into the panel clock area with app filtering, split layouts, and customizable states. Version 0.5.",
   "uuid": "notipanel@ooemir",
+  "url": "https://github.com/ooemir23/GnomeNotipane-",
+  "version": 5,
   "shell-version": [
     "45",
     "46",
